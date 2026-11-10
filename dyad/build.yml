@@ -1,0 +1,42 @@
+name: Build DYAD
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dei sorgenti DYAD
+        uses: actions/checkout@v4
+
+      - name: Scarica il logue SDK
+        run: git clone --recursive https://github.com/korginc/logue-sdk.git
+
+      - name: Elenca i template disponibili
+        run: ls logue-sdk/platform/nts-1_mkii
+
+      - name: Prepara il progetto dyad dal template dummy-osc
+        run: |
+          cp -r logue-sdk/platform/nts-1_mkii/dummy-osc logue-sdk/platform/nts-1_mkii/dyad
+          cp dyad/dyad.cc dyad/header.c dyad/config.mk logue-sdk/platform/nts-1_mkii/dyad/
+
+      - name: Costruisci l'immagine Docker dell'SDK
+        run: |
+          cd logue-sdk/docker
+          ./build_image.sh
+
+      - name: Compila DYAD
+        run: |
+          cd logue-sdk/docker
+          ./run_cmd.sh build nts-1_mkii/dyad
+
+      - name: Cerca il file compilato
+        run: find logue-sdk -name "*.nts1mkiiunit"
+
+      - name: Salva il risultato
+        uses: actions/upload-artifact@v4
+        with:
+          name: dyad
+          path: logue-sdk/**/*.nts1mkiiunit
